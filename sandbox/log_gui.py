@@ -6,16 +6,21 @@ import logging
 from logging import Handler, NOTSET
 from rich.logging import RichHandler
 from rich.console import Console
-from PySide6.QtWidgets import QTextEdit, QApplication, QMainWindow
+from PySide6.QtWidgets import (QWidget, QTextEdit, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel)
 from PySide6.QtGui import QTextCursor, QTextOption, QFont
+from PySide6.QtCore import QThread, Signal
+
 
 class QTextEditLogger(QTextEdit, Handler):
-    """A QTextEdit logger that uses RichHandler to format log messages."""
     def __init__(self, parent=None, level=NOTSET):
         QTextEdit.__init__(self, parent)
+        layout = QVBoxLayout()
+        self.setLayout(layout)
         Handler.__init__(self,level=level)
-        self.console = Console(file=open(os.devnull, "wt"), record=True, width=100, height=12, soft_wrap=False, color_system="truecolor", tab_size=4)
-        self.rich_handler = RichHandler(show_time=False, show_path=False, show_level=True, markup=True, console=self.console, level=self.level)
+        self.console = Console(file=open(os.devnull, "wt"), record=True, width=100, height=12,
+                               soft_wrap=False, color_system="truecolor", tab_size=4)
+        self.rich_handler = RichHandler(show_time=False, show_path=False, show_level=True, markup=True,
+                                        console=self.console, level=self.level)
         self.rich_handler.setLevel(self.level)
         self.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         self.setAcceptRichText(True)
@@ -25,42 +30,76 @@ class QTextEditLogger(QTextEdit, Handler):
         self.setFont(font)
 
     def emit(self, record) -> None:
-        """Override the emit method to handle log records."""
         self.rich_handler.emit(record)
         indent_width = 11*self.fontMetrics().averageCharWidth()
         html_template = f'<p style="background-color: {{background}}; color: {{foreground}}; margin: 0; margin-left:{indent_width}px; text-indent:-{indent_width}px;white-space: pre-wrap"><code>{{code}}</code></p>'
         html = self.console.export_html(clear=True, code_format=html_template, inline_styles=True)
-        # remove padding at end of string, since that stems from console width wich is invalid here
         html = re.sub(r'\s+[\n]', '\n', html) 
         self.insertHtml(html)
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().maximum())  
         c = self.textCursor()
         c.movePosition(QTextCursor.MoveOperation.End)
         self.setTextCursor(c)
-
+        QApplication.processEvents() 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QTextEdit Example")
+        self.setWindowTitle("Main Window")
+        layout = QVBoxLayout()
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.button_w = QPushButton("Window")
+        layout.addWidget(self.button_w)
+        self.button_w.clicked.connect(self.show_new_window)
+        self.button_l = QPushButton("Log")
+        layout.addWidget(self.button_l)
+        self.button_l.clicked.connect(self.qt_log)
+        self.setCentralWidget(widget)
+        
+    def show_new_window(self, checked):
+        self.text_edit = QTextEditLogger()
+        self.text_edit.resize(600, 600)
+        self.text_edit.show()
 
-        # Create a QTextEdit widget
-        self.text_edit = QTextEditLogger(self)
-        self.setCentralWidget(self.text_edit)
+    def qt_log(self):
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(self.text_edit)
 
+ 
+        self.log_worker = LogWorker()
+        self.log_worker.log_signal.connect(self.handle_log_message)
+        self.log_worker.start()
+
+
+    def handle_log_message(self, level, message):
+        logger = logging.getLogger()
+        {
+            "INFO": logger.info,
+            "WARNING": logger.warning,
+            "DEBUG": logger.debug,
+            "ERROR": logger.error,
+        }[level](message)            
+
+class LogWorker(QThread):
+    log_signal = Signal(str, str)  # level, message
+    
+    def run(self):
+        self.log_signal.emit("INFO", "This is an info message.")
+        sleep(0.5)
+        self.log_signal.emit("WARNING", "This is a warning message.")
+        sleep(0.5)
+        for i in range(10):
+            self.log_signal.emit("DEBUG", f"This is a debug message {i}.")
+            self.log_signal.emit("ERROR", "This is an error message.")
+            sleep(0.1)
+
+
+        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
-    window.resize(600, 600)
     window.show()
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(window.text_edit)
-    logger.info("This is an info message.")
-    sleep(.5)
-    logger.warning("This is a warning message.")
-    sleep(.5)
-    for i in range(10):
-        logger.debug(f"This is a debug message {i}.")
-    logger.error("This is an error message.")
-    sys.exit(app.exec())
+    app.exec()
+    
