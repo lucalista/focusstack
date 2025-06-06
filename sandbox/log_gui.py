@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.button_w.clicked.connect(self.show_new_window)
         self.button_l = QPushButton("Log")
         layout.addWidget(self.button_l)
-        self.button_l.clicked.connect(self.qt_log)
+        self.button_l.clicked.connect(self.start_thread)
         self.setCentralWidget(widget)
         
     def show_new_window(self, checked):
@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         self.text_edit.resize(600, 600)
         self.text_edit.show()
 
-    def qt_log(self):
+    def start_thread(self):
         self.button_l.setEnabled(False)
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
@@ -75,6 +75,9 @@ class MainWindow(QMainWindow):
         self.text_edit.insertHtml(html)
 
     def handle_log_message(self, level, message):
+        if level == "END_THREAD":
+            self.button_l.setEnabled(True)
+            return
         logger = logging.getLogger()
         {
             "INFO": logger.info,
@@ -88,15 +91,16 @@ class LogWorker(QThread):
     log_signal = Signal(str, str)
         
     def run(self):
+        self.log_signal.emit("HTML", "<h1>Begin thread</h1><br>")
         self.log_signal.emit("INFO", "This is an info message.")
         sleep(0.5)
         self.log_signal.emit("WARNING", "This is a warning message.")
         sleep(0.5)
-        self.log_signal.emit("HTML", "<h1>title</h1><br>")
         for i in range(10):
             self.log_signal.emit("DEBUG", f"This is a debug message {i}.")
             self.log_signal.emit("ERROR", "This is an error message.")
             sleep(0.1)
+        self.log_signal.emit("END_THREAD", "")
 
 
         
