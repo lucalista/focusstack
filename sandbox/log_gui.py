@@ -69,15 +69,14 @@ class MainWindow(QMainWindow):
         logger.addHandler(self.text_edit)
         self.log_worker = LogWorker()
         self.log_worker.log_signal.connect(self.handle_log_message)
+        self.log_worker.html_signal.connect(self.handle_html_message)
+        self.log_worker.end_signal.connect(self.handle_end_message)
         self.log_worker.start()
 
     def add_html(self, html):
         self.text_edit.insertHtml(html)
 
     def handle_log_message(self, level, message):
-        if level == "END_THREAD":
-            self.button_l.setEnabled(True)
-            return
         logger = logging.getLogger()
         {
             "INFO": logger.info,
@@ -87,11 +86,19 @@ class MainWindow(QMainWindow):
             "HTML": self.add_html
         }[level](message)            
 
+    def handle_html_message(self, html):
+        self.add_html(html)
+
+    def handle_end_message(self, int):
+        self.button_l.setEnabled(True)
+
 class LogWorker(QThread):
     log_signal = Signal(str, str)
+    html_signal = Signal(str)
+    end_signal = Signal(int)
         
     def run(self):
-        self.log_signal.emit("HTML", "<h1>Begin thread</h1><br>")
+        self.html_signal.emit("<h1>Begin thread</h1><br>")
         self.log_signal.emit("INFO", "This is an info message.")
         sleep(0.5)
         self.log_signal.emit("WARNING", "This is a warning message.")
@@ -100,7 +107,7 @@ class LogWorker(QThread):
             self.log_signal.emit("DEBUG", f"This is a debug message {i}.")
             self.log_signal.emit("ERROR", "This is an error message.")
             sleep(0.1)
-        self.log_signal.emit("END_THREAD", "")
+        self.end_signal.emit(1)
 
 
         
