@@ -63,12 +63,16 @@ class MainWindow(QMainWindow):
         self.text_edit.show()
 
     def qt_log(self):
+        self.button_l.setEnabled(False)
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         logger.addHandler(self.text_edit)
         self.log_worker = LogWorker()
         self.log_worker.log_signal.connect(self.handle_log_message)
         self.log_worker.start()
+
+    def add_html(self, html):
+        self.text_edit.insertHtml(html)
 
     def handle_log_message(self, level, message):
         logger = logging.getLogger()
@@ -77,6 +81,7 @@ class MainWindow(QMainWindow):
             "WARNING": logger.warning,
             "DEBUG": logger.debug,
             "ERROR": logger.error,
+            "HTML": self.add_html
         }[level](message)            
 
 class LogWorker(QThread):
@@ -87,6 +92,7 @@ class LogWorker(QThread):
         sleep(0.5)
         self.log_signal.emit("WARNING", "This is a warning message.")
         sleep(0.5)
+        self.log_signal.emit("HTML", "<h1>title</h1><br>")
         for i in range(10):
             self.log_signal.emit("DEBUG", f"This is a debug message {i}.")
             self.log_signal.emit("ERROR", "This is an error message.")
