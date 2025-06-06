@@ -72,7 +72,6 @@ class MainWindow(QMainWindow):
         self.log_worker.log_signal.connect(self.handle_log_message)
         self.log_worker.start()
 
-
     def handle_log_message(self, level, message):
         logger = logging.getLogger()
         {
@@ -84,7 +83,7 @@ class MainWindow(QMainWindow):
 
 class LogWorker(QThread):
     log_signal = Signal(str, str)
-    
+        
     def run(self):
         self.log_signal.emit("INFO", "This is an info message.")
         sleep(0.5)
