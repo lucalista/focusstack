@@ -66,8 +66,6 @@ class MainWindow(QMainWindow):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         logger.addHandler(self.text_edit)
-
- 
         self.log_worker = LogWorker()
         self.log_worker.log_signal.connect(self.handle_log_message)
         self.log_worker.start()
