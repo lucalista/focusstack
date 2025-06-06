@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         }[level](message)            
 
 class LogWorker(QThread):
-    log_signal = Signal(str, str)  # level, message
+    log_signal = Signal(str, str)
     
     def run(self):
         self.log_signal.emit("INFO", "This is an info message.")
