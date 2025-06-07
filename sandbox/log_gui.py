@@ -21,8 +21,6 @@ class QtLogFormatter(logging.Formatter):
         'ERROR': 'red',
         'CRITICAL': 'red bold'
     }
-    RESET = '\033[0m'
-
     def format(self, record):
         color = self.COLORS.get(record.levelname, '')
         fmt = f"[blue3][[{color}]%(levelname).3s[/] %(asctime)s] %(message)s[/]"  # noqa
