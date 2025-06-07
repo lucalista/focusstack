@@ -86,50 +86,6 @@ class QTextEditLogger(QTextEdit):
     def handle_html_message(self, html):
         self.insertHtml(html)
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Main Window")
-        layout = QVBoxLayout()
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.button_w = QPushButton("New window")
-        layout.addWidget(self.button_w)
-        self.button_w.clicked.connect(self.show_new_window)
-        self.button_l = QPushButton("Start thread")
-        layout.addWidget(self.button_l)
-        self.button_l.clicked.connect(self.start_thread)
-        self.setCentralWidget(widget)
-        self.text_edit = []
-
-    def last_id(self):
-        return self.text_edit[-1].id
-
-    def last_id_str(self):
-        return self.text_edit[-1].id_str()
-        
-    def show_new_window(self, checked):
-        text_edit = QTextEditLogger()
-        text_edit.resize(600, 600)
-        text_edit.show()
-        self.text_edit.append(text_edit)
-
-    def start_thread(self):
-        self.button_l.setEnabled(False)
-        logger = logging.getLogger(self.last_id_str())
-        logger.setLevel(logging.DEBUG)
-        text_edit = self.text_edit[self.last_id()]
-        self.handler = HtmlRichHandler(text_edit)
-        self.handler.setLevel(logging.DEBUG)
-        logger.addHandler(self.handler)
-        self.log_worker = LogWorker()
-        self.log_worker.log_signal.connect(text_edit.handle_log_message)
-        self.log_worker.html_signal.connect(text_edit.handle_html_message)
-        self.log_worker.end_signal.connect(self.handle_end_message)
-        self.log_worker.start()
-
-    def handle_end_message(self, int):
-        self.button_l.setEnabled(True)
 
 class LogWorker(QThread):
     log_signal = Signal(str, str)
@@ -148,6 +104,73 @@ class LogWorker(QThread):
             self.log_signal.emit("CRITICAL", "Crash!!!")
             sleep(0.1)
         self.end_signal.emit(1)
+
+
+class LogManager:
+    def __init__(self):
+        self.text_edit = []
+
+    def last_id(self):
+        return self.text_edit[-1].id
+
+    def last_id_str(self):
+        return self.text_edit[-1].id_str()
+
+    def add_tex_edit(self, text_edit):
+        self.text_edit.append(text_edit)
+        
+    def start_thread(self):
+        self.begin()
+        logger = logging.getLogger(self.last_id_str())
+        logger.setLevel(logging.DEBUG)
+        text_edit = self.text_edit[self.last_id()]
+        self.handler = HtmlRichHandler(text_edit)
+        self.handler.setLevel(logging.DEBUG)
+        logger.addHandler(self.handler)
+        self.log_worker = LogWorker()
+        self.log_worker.log_signal.connect(text_edit.handle_log_message)
+        self.log_worker.html_signal.connect(text_edit.handle_html_message)
+        self.log_worker.end_signal.connect(self.handle_end_message)
+        self.log_worker.start()
+
+    def begin(self):
+        pass
+
+    def _do_handle_end_message(self, int):
+        pass
+
+    def handle_end_message(self, int):
+        self._do_handle_end_message(int)
+
+
+class MainWindow(QMainWindow, LogManager):
+    def __init__(self):
+        QMainWindow.__init__(self)
+        LogManager.__init__(self)
+        self.setWindowTitle("Main Window")
+        layout = QVBoxLayout()
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.button_w = QPushButton("New window")
+        layout.addWidget(self.button_w)
+        self.button_w.clicked.connect(self.show_new_window)
+        self.button_l = QPushButton("Start thread")
+        layout.addWidget(self.button_l)
+        self.button_l.clicked.connect(self.start_thread)
+        self.setCentralWidget(widget)
+
+    def begin(self):
+        self.button_l.setEnabled(False)
+
+    def _do_handle_end_message(self, int):
+        self.button_l.setEnabled(True)
+
+    def show_new_window(self, checked):
+        text_edit = QTextEditLogger()
+        text_edit.resize(600, 600)
+        text_edit.show()
+        self.add_tex_edit(text_edit)
+
 
         
 if __name__ == "__main__":
