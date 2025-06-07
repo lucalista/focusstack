@@ -1,16 +1,7 @@
 import sys
 sys.path.append('../')
-from gui.logging import *
-import os
-import re
-from time import sleep
-import logging
-import datetime
-from rich.logging import RichHandler
-from rich.console import Console
-from PySide6.QtWidgets import (QWidget, QTextEdit, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel)
-from PySide6.QtGui import QTextCursor, QTextOption, QFont
-from PySide6.QtCore import QThread, Signal
+from gui.logging import QTextEditLogger, LogManager
+from PySide6.QtWidgets import (QWidget, QApplication, QMainWindow, QPushButton, QVBoxLayout)
 
 
 class MainWindow(QMainWindow, LogManager):
@@ -42,10 +33,8 @@ class MainWindow(QMainWindow, LogManager):
         self.add_tex_edit(text_edit)
 
 
-        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
     app.exec()
-    
