@@ -3,7 +3,6 @@ import os
 import re
 from time import sleep
 import logging
-from logging import Handler, NOTSET
 from rich.logging import RichHandler
 from rich.console import Console
 from PySide6.QtWidgets import (QWidget, QTextEdit, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel)
@@ -11,23 +10,44 @@ from PySide6.QtGui import QTextCursor, QTextOption, QFont
 from PySide6.QtCore import QThread, Signal
 
 
-class QTextEditLogger(QTextEdit, Handler):
-    def __init__(self, parent=None, level=NOTSET):
+class QtLogFormatter(logging.Formatter):
+    ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    COLORS = {
+        'DEBUG': '[cyan]',
+        'INFO': '[green]',
+        'WARNING': '[yellow]',
+        'ERROR': '[red]',
+        'CRITICAL': '[red bold]'
+    }
+    RESET = '\033[0m'
+
+    def format(self, record):
+        color = self.COLORS.get(record.levelname, '')
+        end_color = '[/'+color[1:]
+        fmt = f"[{color}%(levelname).3s %(asctime)s{end_color}] %(message)s"  # noqa
+        return self.ANSI_ESCAPE.sub('', logging.Formatter(fmt).format(record).replace("\r", "").rstrip())
+        
+
+class QTextEditLogger(QTextEdit, logging.StreamHandler):
+    def __init__(self, parent=None):
         QTextEdit.__init__(self, parent)
         layout = QVBoxLayout()
         self.setLayout(layout)
-        Handler.__init__(self,level=level)
-        self.console = Console(file=open(os.devnull, "wt"), record=True, width=100, height=12,
+        self.console = Console(file=open(os.devnull, "wt"), record=True, width=100, height=20,
                                soft_wrap=False, color_system="truecolor", tab_size=4)
-        self.rich_handler = RichHandler(show_time=False, show_path=False, show_level=True, markup=True,
-                                        console=self.console, level=self.level)
-        self.rich_handler.setLevel(self.level)
+        self.rich_handler = RichHandler(show_time=False, show_path=False, show_level=False, markup=True,
+                                        console=self.console)
+        self.rich_handler.setFormatter(QtLogFormatter())        
+        logging.StreamHandler.__init__(self)
         self.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         self.setAcceptRichText(True)
         self.setReadOnly(True)
-        font = QFont(['Menlo','DejaVu Sans Mono','consolas','Courier New','monospace'], 16, self.font().weight())
+        font = QFont(['Menlo','DejaVu Sans Mono','consolas','Courier New','monospace'], 12, self.font().weight())
         font.setStyleHint(QFont.StyleHint.TypeWriter)
         self.setFont(font)
+
+    def setLevel(self, level):
+        self.rich_handler.setLevel(self.level)
 
     def emit(self, record) -> None:
         self.rich_handler.emit(record)
@@ -40,7 +60,8 @@ class QTextEditLogger(QTextEdit, Handler):
         c = self.textCursor()
         c.movePosition(QTextCursor.MoveOperation.End)
         self.setTextCursor(c)
-        QApplication.processEvents() 
+        QApplication.processEvents()
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -67,6 +88,7 @@ class MainWindow(QMainWindow):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         logger.addHandler(self.text_edit)
+        self.text_edit.setLevel(logging.DEBUG)
         self.log_worker = LogWorker()
         self.log_worker.log_signal.connect(self.handle_log_message)
         self.log_worker.html_signal.connect(self.handle_html_message)
@@ -83,7 +105,7 @@ class MainWindow(QMainWindow):
             "WARNING": logger.warning,
             "DEBUG": logger.debug,
             "ERROR": logger.error,
-            "HTML": self.add_html
+            "CRITICAL": logger.critical,
         }[level](message)            
 
     def handle_html_message(self, html):
@@ -106,6 +128,7 @@ class LogWorker(QThread):
         for i in range(10):
             self.log_signal.emit("DEBUG", f"This is a debug message {i}.")
             self.log_signal.emit("ERROR", "This is an error message.")
+            self.log_signal.emit("CRITICAL", "Crash!!!")
             sleep(0.1)
         self.end_signal.emit(1)
 
