@@ -5,8 +5,6 @@ from time import sleep
 import logging
 from rich.logging import RichHandler
 from rich.console import Console
-from rich.highlighter import ReprHighlighter
-from rich.style import Style
 from PySide6.QtWidgets import (QWidget, QTextEdit, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel)
 from PySide6.QtGui import QTextCursor, QTextOption, QFont
 from PySide6.QtCore import QThread, Signal
