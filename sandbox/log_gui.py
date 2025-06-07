@@ -29,7 +29,7 @@ class QtLogFormatter(logging.Formatter):
         return self.ANSI_ESCAPE.sub('', logging.Formatter(fmt).format(record).replace("\r", "").rstrip())
 
 
-class QRichHandler(RichHandler):
+class HtmlRichHandler(RichHandler):
     def __init__(self, text_edit):
         self.console = Console(file=open(os.devnull, "wt"), record=True, width=100, height=20, highlight=False,
                                soft_wrap=False, color_system="truecolor", tab_size=4)
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.button_l.setEnabled(False)
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
-        self.handler = QRichHandler(self.text_edit)
+        self.handler = HtmlRichHandler(self.text_edit)
         self.handler.setLevel(logging.DEBUG)
         logger.addHandler(self.handler)
         self.log_worker = LogWorker()
