@@ -68,6 +68,19 @@ class QTextEditLogger(QTextEdit):
         QApplication.processEvents()
         
 
+    def handle_log_message(self, level, message):
+        logger = logging.getLogger(self.id)
+        {
+            "INFO": logger.info,
+            "WARNING": logger.warning,
+            "DEBUG": logger.debug,
+            "ERROR": logger.error,
+            "CRITICAL": logger.critical,
+        }[level](message)            
+
+    def handle_html_message(self, html):
+        self.insertHtml(html)
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -82,41 +95,29 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.button_l)
         self.button_l.clicked.connect(self.start_thread)
         self.setCentralWidget(widget)
+        self.text_edit = {}
         
     def show_new_window(self, checked):
-        unique_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-        self.text_edit = QTextEditLogger(unique_id)
-        self.text_edit.resize(600, 600)
-        self.text_edit.show()
+        id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+        text_edit = QTextEditLogger(id)
+        text_edit.resize(600, 600)
+        text_edit.show()
+        self.text_edit[id] = text_edit
+        self.last_id = id
 
     def start_thread(self):
         self.button_l.setEnabled(False)
-        logger = logging.getLogger(self.text_edit.id)
+        logger = logging.getLogger(self.last_id)
         logger.setLevel(logging.DEBUG)
-        self.handler = HtmlRichHandler(self.text_edit)
+        text_edit = self.text_edit[self.last_id]
+        self.handler = HtmlRichHandler(text_edit)
         self.handler.setLevel(logging.DEBUG)
         logger.addHandler(self.handler)
         self.log_worker = LogWorker()
-        self.log_worker.log_signal.connect(self.handle_log_message)
-        self.log_worker.html_signal.connect(self.handle_html_message)
+        self.log_worker.log_signal.connect(text_edit.handle_log_message)
+        self.log_worker.html_signal.connect(text_edit.handle_html_message)
         self.log_worker.end_signal.connect(self.handle_end_message)
         self.log_worker.start()
-
-    def add_html(self, html):
-        self.text_edit.insertHtml(html)
-
-    def handle_log_message(self, level, message):
-        logger = logging.getLogger(self.text_edit.id)
-        {
-            "INFO": logger.info,
-            "WARNING": logger.warning,
-            "DEBUG": logger.debug,
-            "ERROR": logger.error,
-            "CRITICAL": logger.critical,
-        }[level](message)            
-
-    def handle_html_message(self, html):
-        self.add_html(html)
 
     def handle_end_message(self, int):
         self.button_l.setEnabled(True)
