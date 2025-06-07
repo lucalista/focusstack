@@ -3,6 +3,7 @@ import os
 import re
 from time import sleep
 import logging
+import datetime
 from rich.logging import RichHandler
 from rich.console import Console
 from PySide6.QtWidgets import (QWidget, QTextEdit, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel)
@@ -43,7 +44,7 @@ class HtmlRichHandler(RichHandler):
 
 
 class QTextEditLogger(QTextEdit):
-    def __init__(self, parent=None):
+    def __init__(self, id, parent=None):
         QTextEdit.__init__(self, parent)
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -53,6 +54,7 @@ class QTextEditLogger(QTextEdit):
         font = QFont(['Menlo','DejaVu Sans Mono','consolas','Courier New','monospace'], 12, self.font().weight())
         font.setStyleHint(QFont.StyleHint.TypeWriter)
         self.setFont(font)
+        self.id = id
 
     def emit_html(self, html):
         pattern = r'<span style="color: #00ff00; text-decoration-color: #00ff00; font-weight: bold">(\d{2}:\d{2}:\d{2})</span>'
@@ -82,13 +84,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
         
     def show_new_window(self, checked):
-        self.text_edit = QTextEditLogger()
+        unique_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+        self.text_edit = QTextEditLogger(unique_id)
         self.text_edit.resize(600, 600)
         self.text_edit.show()
 
     def start_thread(self):
         self.button_l.setEnabled(False)
-        logger = logging.getLogger()
+        logger = logging.getLogger(self.text_edit.id)
         logger.setLevel(logging.DEBUG)
         self.handler = HtmlRichHandler(self.text_edit)
         self.handler.setLevel(logging.DEBUG)
@@ -103,7 +106,7 @@ class MainWindow(QMainWindow):
         self.text_edit.insertHtml(html)
 
     def handle_log_message(self, level, message):
-        logger = logging.getLogger()
+        logger = logging.getLogger(self.text_edit.id)
         {
             "INFO": logger.info,
             "WARNING": logger.warning,
