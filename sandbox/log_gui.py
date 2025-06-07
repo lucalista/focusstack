@@ -44,7 +44,8 @@ class HtmlRichHandler(RichHandler):
 
 
 class QTextEditLogger(QTextEdit):
-    def __init__(self, id, parent=None):
+    __id_counter = 0
+    def __init__(self, parent=None):
         QTextEdit.__init__(self, parent)
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -54,7 +55,11 @@ class QTextEditLogger(QTextEdit):
         font = QFont(['Menlo','DejaVu Sans Mono','consolas','Courier New','monospace'], 12, self.font().weight())
         font.setStyleHint(QFont.StyleHint.TypeWriter)
         self.setFont(font)
-        self.id = id
+        self.id = __class__.__id_counter
+        __class__.__id_counter += 1
+
+    def id_str(self):
+        return __class__.__name__+ "_" + str(self.id)
 
     def emit_html(self, html):
         pattern = r'<span style="color: #00ff00; text-decoration-color: #00ff00; font-weight: bold">(\d{2}:\d{2}:\d{2})</span>'
@@ -69,7 +74,7 @@ class QTextEditLogger(QTextEdit):
         
 
     def handle_log_message(self, level, message):
-        logger = logging.getLogger(self.id)
+        logger = logging.getLogger(self.id_str())
         {
             "INFO": logger.info,
             "WARNING": logger.warning,
@@ -95,21 +100,25 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.button_l)
         self.button_l.clicked.connect(self.start_thread)
         self.setCentralWidget(widget)
-        self.text_edit = {}
+        self.text_edit = []
+
+    def last_id(self):
+        return self.text_edit[-1].id
+
+    def last_id_str(self):
+        return self.text_edit[-1].id_str()
         
     def show_new_window(self, checked):
-        id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-        text_edit = QTextEditLogger(id)
+        text_edit = QTextEditLogger()
         text_edit.resize(600, 600)
         text_edit.show()
-        self.text_edit[id] = text_edit
-        self.last_id = id
+        self.text_edit.append(text_edit)
 
     def start_thread(self):
         self.button_l.setEnabled(False)
-        logger = logging.getLogger(self.last_id)
+        logger = logging.getLogger(self.last_id_str())
         logger.setLevel(logging.DEBUG)
-        text_edit = self.text_edit[self.last_id]
+        text_edit = self.text_edit[self.last_id()]
         self.handler = HtmlRichHandler(text_edit)
         self.handler.setLevel(logging.DEBUG)
         logger.addHandler(self.handler)
