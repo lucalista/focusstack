@@ -120,7 +120,7 @@ class LogManager:
         self.text_edit.append(text_edit)
         
     def start_thread(self):
-        self.begin()
+        self.before_thread_begins()
         logger = logging.getLogger(self.last_id_str())
         logger.setLevel(logging.DEBUG)
         text_edit = self.text_edit[self.last_id()]
@@ -133,7 +133,7 @@ class LogManager:
         self.log_worker.end_signal.connect(self.handle_end_message)
         self.log_worker.start()
 
-    def begin(self):
+    def before_thread_begins(self):
         pass
 
     def _do_handle_end_message(self, int):
@@ -159,7 +159,7 @@ class MainWindow(QMainWindow, LogManager):
         self.button_l.clicked.connect(self.start_thread)
         self.setCentralWidget(widget)
 
-    def begin(self):
+    def before_thread_begins(self):
         self.button_l.setEnabled(False)
 
     def _do_handle_end_message(self, int):
