@@ -4,6 +4,7 @@ from gui.logging import QTextEditLogger, LogManager, LogWorker
 from PySide6.QtWidgets import (QWidget, QApplication, QMainWindow, QPushButton, QVBoxLayout)
 from time import sleep
 
+
 class MyLogWorker(LogWorker):
     def run(self):
         self.html_signal.emit("<h1>Begin thread</h1><br>")
