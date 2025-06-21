@@ -13,13 +13,15 @@ class MyPdfView(QPdfView):
 
     def mouseReleaseEvent(self, event):
         filepath = os.getcwd() + "/" + PDF_FILE
-        if platform.system() == 'Darwin':       # macOS
-            subprocess.call(('open', filepath))
-        elif platform.system() == 'Windows':    # Windows
-            os.startfile(filepath)
-        else:                                   # linux variants
-            subprocess.call(('xdg-open', filepath))        
-        webbrowser.open("file://" + filepath)
+        try:
+            if platform.system() == 'Darwin':       # macOS
+                subprocess.call(('open', filepath))
+            elif platform.system() == 'Windows':    # Windows
+                os.startfile(filepath)
+            else:                                   # linux variants
+                subprocess.call(('xdg-open', filepath))
+        except Exception:
+            webbrowser.open("file://" + filepath)
 
         
 def main():
