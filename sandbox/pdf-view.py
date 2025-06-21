@@ -3,10 +3,13 @@ from PySide6.QtPdf import QPdfDocument
 from PySide6.QtPdfWidgets import QPdfView
 import sys
 import webbrowser
-import subprocess, os, platform
+import subprocess
+import os
+import platform
 
 PDF_FILE = "../tests/plots/vignette-r0.pdf"
-    
+
+
 class MyPdfView(QPdfView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -23,7 +26,7 @@ class MyPdfView(QPdfView):
         except Exception:
             webbrowser.open("file://" + filepath)
 
-        
+
 def main():
     app = QApplication(sys.argv)
     document = QPdfDocument()
@@ -34,6 +37,7 @@ def main():
     view.setZoomFactor(0.25)
     view.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
