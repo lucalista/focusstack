@@ -1,9 +1,5 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-import numpy as np
-
-import networkx as nx
-import matplotlib.pyplot as plt
 
 options = {
     "font_size": 12,
@@ -31,7 +27,6 @@ pos = {1: [0, 40],
        3: [50, 20], 4: [100, 20],
        5: [100, 10], 6: [150, 10],
        7: [200, 20]}
-       
 nx.draw_networkx(G, pos, **options)
 ax = plt.gca()
 ax.margins(0.20)
