@@ -25,10 +25,13 @@ G.add_edge(3, 2)
 G.add_edge(4, 3)
 G.add_edge(5, 4)
 G.add_edge(6, 4)
-G.add_edge(7, 3)
-edge_nodes = set(G) - {1}
-pos = nx.circular_layout(G.subgraph(edge_nodes))
-pos[1] = np.array([0, 10])
+G.add_edge(7, 4)
+pos = {1: [0, 40],
+       2: [50, 30],
+       3: [50, 20], 4: [100, 20],
+       5: [100, 10], 6: [150, 10],
+       7: [200, 20]}
+       
 nx.draw_networkx(G, pos, **options)
 ax = plt.gca()
 ax.margins(0.20)
