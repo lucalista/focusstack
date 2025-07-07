@@ -17,7 +17,7 @@ from gui.gui_utils import disable_macos_special_menu_items
 class MainApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("App Unificata")
+        self.setWindowTitle("Focus stacking")
         self.setGeometry(100, 100, 800, 600)
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
@@ -25,18 +25,33 @@ class MainApp(QMainWindow):
         self.retouch_window = ImageEditorUI()
         self.stacked_widget.addWidget(self.project_window)
         self.stacked_widget.addWidget(self.retouch_window)
-        self.create_menu()
+        self.create_menu(self.menuBar())
         self.set_initial_app()
 
-    def create_menu(self):
-        menubar = self.menuBar()
-        app_menu = menubar.addMenu("Applicazione")
-        switch_to_project_window = QAction("Project", self)
-        switch_to_project_window.triggered.connect(lambda: self.switch_app(0))
-        switch_to_retouch_window = QAction("Retouch", self)
-        switch_to_retouch_window.triggered.connect(lambda: self.switch_app(1))
-        app_menu.addAction(switch_to_project_window)
-        app_menu.addAction(switch_to_retouch_window)
+    def switch_to_project(self):
+        self.switch_app(0)
+        self.switch_to_project_action.setChecked(True)
+        self.switch_to_retouch_action.setChecked(False)
+        self.switch_to_project_action.setEnabled(False)
+        self.switch_to_retouch_action.setEnabled(True)
+
+    def switch_to_retouch(self):
+        self.switch_app(1)
+        self.switch_to_project_action.setChecked(False)
+        self.switch_to_retouch_action.setChecked(True)
+        self.switch_to_project_action.setEnabled(True)
+        self.switch_to_retouch_action.setEnabled(False)
+
+    def create_menu(self, menubar):
+        app_menu = menubar.addMenu("App")
+        self.switch_to_project_action = QAction("Project", self)
+        self.switch_to_project_action.setCheckable(True)
+        self.switch_to_project_action.triggered.connect(self.switch_to_project)
+        self.switch_to_retouch_action = QAction("Retouch", self)
+        self.switch_to_retouch_action.setCheckable(True)
+        self.switch_to_retouch_action.triggered.connect(self.switch_to_retouch)
+        app_menu.addAction(self.switch_to_project_action)
+        app_menu.addAction(self.switch_to_retouch_action)
 
     def switch_app(self, index):
         self.stacked_widget.setCurrentIndex(index)
@@ -44,9 +59,9 @@ class MainApp(QMainWindow):
     def set_initial_app(self):
         import sys
         if "--retouch-window" in sys.argv:
-            self.switch_app(1)
+            self.switch_to_retouch()
         else:
-            self.switch_app(0)
+            self.switch_to_project()
 
 
 if __name__ == "__main__":
@@ -69,10 +84,10 @@ if __name__ == "__main__":
     if file_to_open:
         extension = file_to_open.split('.')[-1]
         if extension == 'fsp':
-            main_app.switch_app(0)
+            main_app.switch_to_project()
             QTimer.singleShot(100, lambda: main_app.project_window.open_project(file_to_open))
         elif extension in ['tif', 'tiff']:
-            main_app.switch_app(1)
+            main_app.switch_to_retouch()
             QTimer.singleShot(100, lambda: main_app.retouch_window.open_file(file_to_open))
         else:
             print(f"File extension: {extension} not supported.")
