@@ -2,7 +2,7 @@ import sys
 sys.path.append('../')
 import os
 import logging
-from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QMenu
 from PySide6.QtGui import QAction, QIcon, QGuiApplication
 from PySide6.QtCore import Qt, QTimer
 from config.config import config
@@ -27,7 +27,9 @@ class MainApp(QMainWindow):
         self.retouch_window = ImageEditorUI()
         self.stacked_widget.addWidget(self.project_window)
         self.stacked_widget.addWidget(self.retouch_window)
-        self.create_menu(self.menuBar())
+        self.app_menu = self.create_menu()
+        self.project_window.menuBar().addMenu(self.app_menu)
+        self.retouch_window.menuBar().addMenu(self.app_menu)
         self.set_initial_app()
 
     def switch_to_project(self):
@@ -44,8 +46,8 @@ class MainApp(QMainWindow):
         self.switch_to_project_action.setEnabled(True)
         self.switch_to_retouch_action.setEnabled(False)
 
-    def create_menu(self, menubar):
-        app_menu = menubar.addMenu("App")
+    def create_menu(self):
+        app_menu = QMenu("App")
         self.switch_to_project_action = QAction("Project", self)
         self.switch_to_project_action.setCheckable(True)
         self.switch_to_project_action.triggered.connect(self.switch_to_project)
@@ -54,6 +56,7 @@ class MainApp(QMainWindow):
         self.switch_to_retouch_action.triggered.connect(self.switch_to_retouch)
         app_menu.addAction(self.switch_to_project_action)
         app_menu.addAction(self.switch_to_retouch_action)
+        return app_menu
 
     def switch_app(self, index):
         self.stacked_widget.setCurrentIndex(index)
