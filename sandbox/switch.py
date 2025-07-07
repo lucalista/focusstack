@@ -3,7 +3,7 @@ sys.path.append('../')
 import os
 import logging
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QGuiApplication
 from PySide6.QtCore import Qt, QTimer
 from config.config import config
 config.init(DISABLE_TQDM=True)
@@ -18,7 +18,9 @@ class MainApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Focus stacking")
-        self.setGeometry(100, 100, 800, 600)
+        self.resize(1400, 900)
+        center = QGuiApplication.primaryScreen().geometry().center()
+        self.move(center - self.rect().center())
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
         self.project_window = MainWindow()
