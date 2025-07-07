@@ -28,8 +28,8 @@ class MainApp(QMainWindow):
         self.stacked_widget.addWidget(self.project_window)
         self.stacked_widget.addWidget(self.retouch_window)
         self.app_menu = self.create_menu()
-        self.project_window.menuBar().addMenu(self.app_menu)
-        self.retouch_window.menuBar().addMenu(self.app_menu)
+        self.project_window.menuBar().insertMenu(self.project_window.menuBar().actions()[0], self.app_menu)
+        self.retouch_window.menuBar().insertMenu(self.retouch_window.menuBar().actions()[0], self.app_menu)
         self.set_initial_app()
 
     def switch_to_project(self):
@@ -47,7 +47,7 @@ class MainApp(QMainWindow):
         self.switch_to_retouch_action.setEnabled(False)
 
     def create_menu(self):
-        app_menu = QMenu("App")
+        app_menu = QMenu("FocusStack")
         self.switch_to_project_action = QAction("Project", self)
         self.switch_to_project_action.setCheckable(True)
         self.switch_to_project_action.triggered.connect(self.switch_to_project)
