@@ -84,7 +84,7 @@ def test_alignment(color_test=False):
     
     # 4. Alignment
     try:
-        n_matches, aligned = align_images(
+        n_matches, M_recovered, aligned = align_images(
             transformed_bgr,
             original_bgr,
             alignment_config={'transform': constants.ALIGN_RIGID}
@@ -92,33 +92,7 @@ def test_alignment(color_test=False):
     except Exception as e:
         print(f"Alignment failed: {e}")
         return
-    
-    # 5. Estimate recovered transformation
-    orb = cv2.ORB_create()
-    kp1, des1 = orb.detectAndCompute(aligned, None)
-    kp2, des2 = orb.detectAndCompute(original_bgr, None)
-    
-    if des1 is None or des2 is None or len(des1) < 4 or len(des2) < 4:
-        print("Not enough features to estimate transformation")
-        return
-    
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    matches = bf.match(des1, des2)
-    
-    if len(matches) < 4:
-        print("Not enough matches to estimate transformation")
-        return
-    
-    pts1 = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1,1,2)
-    pts2 = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1,1,2)
-    
-    # Use estimateAffinePartial2D for rigid transform (rotation + translation)
-    M_recovered, _ = cv2.estimateAffinePartial2D(pts1, pts2)
-    
-    if M_recovered is None:
-        print("Could not estimate transformation matrix")
-        return
-    
+
     # 6. Compare transformations
     compare_transformations(M_true, M_recovered)
     

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from focusstack.config.constants import constants
-from focusstack.algorithms.align import align_images, detect_and_compute, find_transform
+from focusstack.algorithms.align import align_images
 import random
 
 def create_test_image(size=(512, 512), color=False):
@@ -62,44 +62,27 @@ def run_single_test(color_test=False):
     
     try:
         # Run alignment with all DEFAULT parameters
-        n_matches, aligned = align_images(
+        # NOTE: align_images() must return the transformation matrix
+        n_matches, M_recovered, aligned = align_images(
             transformed_bgr,
             original_bgr,
             alignment_config={'transform': constants.ALIGN_RIGID}
         )
         
-        # Get keypoints and matches using DEFAULT detectors/descriptors
-        kp_0, kp_1, good_matches = detect_and_compute(
-            original_bgr, 
-            aligned  # Compare original with aligned result
-        )
-        
-        if len(good_matches) < 4:
-            return None
-            
-        # Get points using DEFAULT method
-        src_pts = np.float32([kp_1[m.trainIdx].pt for m in good_matches]).reshape(-1,1,2)
-        dst_pts = np.float32([kp_0[m.queryIdx].pt for m in good_matches]).reshape(-1,1,2)
-        
-        # Estimate transform using DEFAULT parameters
-        M_recovered, _ = find_transform(
-            src_pts, dst_pts,
-            transform=constants.ALIGN_RIGID
-        )
-        
-        if M_recovered is None:
-            return None
-            
         # Calculate recovered parameters
         angle_recovered = np.degrees(np.arctan2(M_recovered[1,0], M_recovered[0,0]))
         tx_recovered = M_recovered[0,2]
         ty_recovered = M_recovered[1,2]
         
         # Calculate errors
-        angle_error = true_params[0] - angle_recovered
-        tx_error = true_params[1] - tx_recovered
-        ty_error = true_params[2] - ty_recovered
-        
+        angle_true = np.degrees(np.arctan2(M_true[1,0], M_true[0,0]))
+        angle_error = angle_true - angle_recovered
+        tx_error = M_true[0,2] - M_recovered[0,2]
+        ty_error = M_true[1,2] - M_recovered[1,2]
+        print(f"Δφ = {angle_error}")
+        print(f"Δx = {tx_error}")
+        print(f"Δy = {ty_error}")
+
         return angle_error, tx_error, ty_error
         
     except Exception as e:
@@ -148,29 +131,27 @@ def run_multiple_tests(N=100, color_test=False):
     plt.xlabel('Error (pixels)')
     
     plt.tight_layout()
-    plt.show()
+    txt = "col" if color_test else "bw"
+    plt.savefig(f"plot_diff_{txt}.pdf")
     
     # Print statistics
     print(f"\nRotation Error Statistics:")
-    print(f"  Mean: {np.mean(angle_errors):.3f}°")
-    print(f"  Median: {np.median(angle_errors):.3f}°")
-    print(f"  Std Dev: {np.std(angle_errors):.3f}°")
-    print(f"  Max: {np.max(angle_errors):.3f}°")
+    print(f"  Mean: {np.mean(angle_errors):.5f}°")
+    print(f"  Median: {np.median(angle_errors):.5f}°")
+    print(f"  Std Dev: {np.std(angle_errors):.5f}°")
     
     print(f"\nX Translation Error Statistics:")
-    print(f"  Mean: {np.mean(tx_errors):.3f} px")
-    print(f"  Median: {np.median(tx_errors):.3f} px")
-    print(f"  Std Dev: {np.std(tx_errors):.3f} px")
-    print(f"  Max: {np.max(tx_errors):.3f} px")
+    print(f"  Mean: {np.mean(tx_errors):.5f} px")
+    print(f"  Median: {np.median(tx_errors):.5f} px")
+    print(f"  Std Dev: {np.std(tx_errors):.5f} px")
     
     print(f"\nY Translation Error Statistics:")
-    print(f"  Mean: {np.mean(ty_errors):.3f} px")
-    print(f"  Median: {np.median(ty_errors):.3f} px")
-    print(f"  Std Dev: {np.std(ty_errors):.3f} px")
-    print(f"  Max: {np.max(ty_errors):.3f} px")
+    print(f"  Mean: {np.mean(ty_errors):.5f} px")
+    print(f"  Median: {np.median(ty_errors):.5f} px")
+    print(f"  Std Dev: {np.std(ty_errors):.5f} px")
 
 if __name__ == "__main__":
-    N_TESTS = 20
+    N_TESTS = 500
     
     print("=== TEST GRAYSCALE ===")
     run_multiple_tests(N=N_TESTS, color_test=False)
