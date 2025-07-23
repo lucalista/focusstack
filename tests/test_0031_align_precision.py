@@ -1,5 +1,9 @@
 import cv2
+import sys
 import numpy as np
+import matplotlib
+if "pytest" in sys.modules:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from focusstack.config.constants import constants
 from focusstack.algorithms.align import align_images
@@ -47,23 +51,27 @@ def compare_transformations(M_true, M_aligned):
     angle_diff = abs(angle_true - angle_aligned)
     tx_diff = abs(M_true[0, 2] - M_aligned[0, 2])
     ty_diff = abs(M_true[1, 2] - M_aligned[1, 2])
-    print(f"\nRotation difference: {angle_diff:.2f} degrees")
-    print(f"Translation X difference: {tx_diff:.2f} pixels")
-    print(f"Translation Y difference: {ty_diff:.2f} pixels")
+    print(f"\nRotation difference: {angle_diff:.4f} degrees")
+    print(f"Translation X difference: {tx_diff:.4f} pixels")
+    print(f"Translation Y difference: {ty_diff:.4f} pixels")
     scale_true = np.sqrt(M_true[0, 0]**2 + M_true[1, 0]**2)
     scale_aligned = np.sqrt(M_aligned[0, 0]**2 + M_aligned[1, 0]**2)
-    print(f"Scale difference: {abs(scale_true - scale_aligned):.4f}")
+    scale_diff = scale_true - scale_aligned
+    print(f"Scale difference: {scale_diff:.6f}")
+    assert abs(angle_diff) < 0.0025
+    assert abs(tx_diff) < 0.1
+    assert abs(ty_diff) < 0.1
+    assert abs(scale_diff) < 0.00004
 
 
-def test_alignment(color_test=False):
+def compare_alignment(color_test=False):
     original = create_test_image(color=color_test)
     transformed, M_true = apply_transform(original)
     original_bgr = ensure_3channel(original)
     transformed_bgr = ensure_3channel(transformed)
     try:
         n_matches, M_recovered, aligned = align_images(
-            transformed_bgr,
-            original_bgr,
+            transformed_bgr, original_bgr,
             alignment_config={'transform': constants.ALIGN_RIGID}
         )
     except Exception as e:
@@ -75,19 +83,28 @@ def test_alignment(color_test=False):
         display_img = cv2.cvtColor(display_img, cv2.COLOR_BGR2GRAY)
     titles = ['Original', 'Transformed', 'Aligned']
     images = [original, transformed, display_img]
-    plt.figure(figsize=(15, 5))
-    for i, (title, img) in enumerate(zip(titles, images)):
-        plt.subplot(1, 3, i + 1)
-        if len(img.shape) == 2:
-            plt.imshow(img, cmap='gray')
-        else:
-            plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        plt.title(title)
-    plt.show()
+    if "pytest" not in sys.modules:
+        plt.figure(figsize=(15, 5))
+        for i, (title, img) in enumerate(zip(titles, images)):
+            plt.subplot(1, 3, i + 1)
+            if len(img.shape) == 2:
+                plt.imshow(img, cmap='gray')
+            else:
+                plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            plt.title(title)
+        plt.show()
+
+
+def test_alignment_bw():
+    compare_alignment(False)
+
+
+def test_alignment_color():
+    compare_alignment(True)
 
 
 if __name__ == "__main__":
     print("=== TEST GRAYSCALE ===")
-    test_alignment(color_test=False)
+    test_alignment_bw()
     print("\n=== TEST COLOR ===")
-    test_alignment(color_test=True)
+    test_alignment_color()
